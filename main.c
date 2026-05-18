@@ -7,43 +7,86 @@
 
 #define MAX_BITS 96
 #define MAX_BYTES (MAX_BITS / 8)
+#define MAX_INPUT_CHARS 256
 
+
+static void discard_rest_of_line(void) {
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+    }
+}
+
+void wait_for_enter() {
+    printf("Nacisnij Enter, aby kontynuowac...");
+    fflush(stdout);
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+    }
+}
 
 int main() {
-    char input[MAX_BITS + 2];
+    char input[MAX_INPUT_CHARS];
     uint8_t packed_bytes[MAX_BYTES] = {0};
     long long repetitions;
 
-    printf("Podaj ciag bitow (maksymalnie 96 znakow '0' lub '1'): ");
+    printf("Podaj ciag bitow (maksymalnie 96 bitow, spacje sa ignorowane): ");
     if (fgets(input, sizeof(input), stdin) == NULL) {
+        wait_for_enter();
+        return 1;
+    }
+
+    if (strchr(input, '\n') == NULL && !feof(stdin)) {
+        discard_rest_of_line();
+        printf("Blad: Ciag jest zbyt dlugi! Maksymalnie 96 bitow.\n");
+        wait_for_enter();
         return 1;
     }
 
     input[strcspn(input, "\n")] = 0;
 
-    int length = strlen(input);
-    if (length > MAX_BITS || length == 0) {
-        printf("Blad: Ciag musi miec od 1 do 96 bitow!\n");
-        return 1;
-    }
+    int length = 0;
+    for (int i = 0; input[i] != '\0'; i++) {
+        if (input[i] == ' ') {
+            continue;
+        }
 
-    for (int i = 0; i < length; i++) {
-        int byte_index = i / 8;
-        int bit_index = 7 - (i % 8);
+        if (input[i] != '0' && input[i] != '1') {
+            printf("Blad: Niedozwolony znak '%c'. Wprowadz tylko 0 lub 1 oraz spacje.\n", input[i]);
+            wait_for_enter();
+            return 1;
+        }
+
+        if (length >= MAX_BITS) {
+            printf("Blad: Ciag musi miec od 1 do 96 bitow!\n");
+            wait_for_enter();
+            return 1;
+        }
+
+        int byte_index = length / 8;
+        int bit_index = 7 - (length % 8);
 
         if (input[i] == '1') {
             packed_bytes[byte_index] |= (1 << bit_index);
-        } else if (input[i] != '0') {
-            printf("Blad: Niedozwolony znak '%c'. Wprowadz tylko 0 lub 1.\n", input[i]);
-            return 1;
         }
+
+        length++;
+    }
+
+    if (length == 0) {
+        printf("Blad: Ciag musi miec od 1 do 96 bitow!\n");
+        wait_for_enter();
+        return 1;
     }
 
     printf("Podaj liczbe powtorzen obliczen (od 1 do 1 000 000 000): ");
     if (scanf("%lld", &repetitions) != 1 || repetitions < 1 || repetitions > 1000000000LL) {
         printf("Blad: Nieprawidlowa liczba powtorzen!\n");
+
+        discard_rest_of_line();
+        wait_for_enter();
         return 1;
     }
+    discard_rest_of_line();
     uint16_t crc_result = 0;
 
     struct timespec start_time;
@@ -67,5 +110,6 @@ int main() {
     printf("Sredni czas jednego wykonania:  %.9e milisekund (%.2f ns)\n", avg_time, avg_time * 1e9);
     printf("========================================\n");
 
+    wait_for_enter();
     return 0;
 }

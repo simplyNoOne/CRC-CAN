@@ -1,8 +1,10 @@
 #ifndef CAN_CRC_H
 #define CAN_CRC_H
 
+#include <stddef.h>
+#include <stdint.h>
 
-uint16_t calc_can_crc(const uint8_t *data, int bit_length) {
+static inline uint16_t calc_can_crc(const uint8_t *data, int bit_length) {
     uint16_t crc_rg = 0;
 
     for (size_t i = 0; i < bit_length; i++) {
